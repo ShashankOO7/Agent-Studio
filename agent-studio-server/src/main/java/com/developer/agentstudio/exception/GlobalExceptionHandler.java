@@ -78,15 +78,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<?> handleIllegalArgument(IllegalArgumentException ex) {
         logger.warn("Illegal argument: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(
-                        ApiResponse.builder()
-                                .success(false)
-                                .message(ex.getMessage())
-                                .data(null)
-                                .timestamp(LocalDateTime.now())
-                                .build()
-                );
+Throwable root = ex;
+while (root.getCause() != null) root = root.getCause();
+String msg = root.getMessage() != null ? root.getMessage() : ex.getMessage();
+return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(
+                ApiResponse.builder()
+                        .success(false)
+                        .message(msg)
+                        .data(null)
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
     }
 
 
@@ -96,11 +99,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleGeneric(Exception ex) {
         logger.error("Unexpected error occurred: ", ex);
 
+        Throwable root = ex;
+        while (root.getCause() != null) root = root.getCause();
+        String msg = root.getMessage() != null ? root.getMessage() : ex.getMessage();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(
                         ApiResponse.builder()
                                 .success(false)
-                                .message("An unexpected error occurred: " + ex.getMessage())
+                                .message(msg)
                                 .data(null)
                                 .timestamp(LocalDateTime.now())
                                 .build()

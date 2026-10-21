@@ -2,6 +2,7 @@ package com.developer.agentstudio.service;
 
 
 import com.developer.agentstudio.config.AppProperties;
+import com.developer.agentstudio.service.GeminiEmbeddingService;
 import com.developer.agentstudio.entity.DocumentMetadata;
 import com.developer.agentstudio.entity.DocumentStatus;
 import com.developer.agentstudio.exception.DocumentProcessingException;
@@ -28,6 +29,8 @@ public class DocumentIngestionService {
     private  final VectorStore vectorStore;
     private final DocumentMetadataRepo documentMetadataRepo;
     private final AppProperties appProperties;
+    private final GeminiEmbeddingService geminiEmbeddingService;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     public int ingest(DocumentMetadata metadata, List<Document> parsedDocs) {
         log.info("Ingesting document [id={}, name={}, pages={}]", metadata.getId(),metadata.getFilename(), metadata.getFileSize());
@@ -85,7 +88,15 @@ public class DocumentIngestionService {
 
 //            3. write chunks and embedding to pg vector
             log.info("Writing {} vector chunks to PgVectorStore for document: {}", enrichedChunks.size(), metadata.getFilename());
-            vectorStore.add(enrichedChunks);
+            for (Document doc : enrichedChunks) {
+                List<Double> embedding = geminiEmbeddingService.embedText(doc.getText());
+                String vector = embedding.toString().replace(" ", "");
+                String metadataJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(doc.getMetadata());
+                jdbcTemplate.update(
+                        "INSERT INTO vector_store (id, content, metadata, embedding) VALUES (gen_random_uuid(), ?, ?::jsonb, ?::vector)",
+                        doc.getText(), metadataJson, vector
+                );
+            }
 
 //            4. Update document status to index
             metadata.setStatus(DocumentStatus.INDEXED);

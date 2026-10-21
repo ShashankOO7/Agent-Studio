@@ -1,6 +1,5 @@
 package com.developer.agentstudio.config;
 
-import jakarta.websocket.server.ServerEndpoint;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

@@ -126,6 +126,7 @@ public class RagService {
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, requestDto.getConversationId()))
                 .stream()
                 .content()
+                .onErrorResume(e -> Flux.just("Error: " + e.getMessage()))
                 .concatWith(Flux.just("[DONE]"));
 
 
